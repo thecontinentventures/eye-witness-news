@@ -95,6 +95,16 @@
             padding: 0 20px;
         }
 
+        /* News Pallet Interactivity */
+        .news-pallet {
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .news-pallet:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 30px -10px rgba(0, 0, 0, 0.12);
+        }
+
         .hero-story {
             background: var(--card-bg);
             border-radius: 12px;
@@ -105,19 +115,22 @@
             position: relative;
             overflow: hidden;
         }
-        .hero-img {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
+        .hero-img-wrapper, .card-img-wrapper {
+            overflow: hidden;
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        .story-link {
-            text-decoration: none;
-            color: inherit;
+        .hero-img {
+            width: 100%;
+            max-height: 420px;
+            object-fit: cover;
             display: block;
+            transition: transform 0.4s ease;
         }
-        .story-link:hover h2 { color: var(--primary); }
+        .news-pallet:hover .hero-img,
+        .news-pallet:hover .card-img {
+            transform: scale(1.03);
+        }
         .badge {
             background: var(--primary);
             color: #ffffff;
@@ -136,7 +149,6 @@
             margin-bottom: 15px;
             line-height: 1.3;
             letter-spacing: -0.5px;
-            transition: color 0.2s ease;
         }
         .hero-story p {
             font-size: 1.05rem;
@@ -177,23 +189,16 @@
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             flex-direction: column;
         }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08);
-        }
         .card-img {
             width: 100%;
-            height: 180px;
+            height: 200px;
             object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            display: block;
+            transition: transform 0.4s ease;
         }
-        .card-link { text-decoration: none; color: inherit; }
-        .card-link:hover h3 { color: var(--primary); }
         .card-tag {
             font-size: 0.7rem;
             font-weight: 700;
@@ -208,7 +213,6 @@
             color: var(--dark);
             margin-bottom: 12px;
             line-height: 1.35;
-            transition: color 0.2s ease;
         }
         .card p {
             font-size: 0.95rem;
@@ -216,13 +220,83 @@
             margin-bottom: 15px;
             flex-grow: 1;
         }
+        .pallet-footer {
+            margin-top: auto;
+            padding-top: 10px;
+        }
         .read-more-link {
             color: var(--primary);
-            text-decoration: none;
             font-weight: 700;
             font-size: 0.88rem;
         }
-        .read-more-link:hover { text-decoration: underline; }
+
+        /* Modal View Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 720px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 16px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modal-fadeIn 0.25s ease-out;
+        }
+        @keyframes modal-fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f1f5f9;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close-btn:hover {
+            background: var(--primary);
+            color: #ffffff;
+        }
+        .modal-img {
+            width: 100%;
+            max-height: 350px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 15px 0 20px 0;
+        }
+        .modal-body {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }
 
         .sources-section {
             background: var(--card-bg);
@@ -276,13 +350,12 @@
             text-align: center;
             font-size: 0.85rem;
         }
-        footer a { color: #94a3b8; text-decoration: none; margin: 0 8px; }
-        footer a:hover { color: #ffffff; }
 
         @media (max-width: 768px) {
             .hero-story { padding: 25px; }
             .hero-story h2 { font-size: 1.5rem; }
             .logo { font-size: 1.8rem; }
+            .modal-card { padding: 20px; }
         }
     </style>
 </head>
@@ -293,7 +366,7 @@
             <div class="live-indicator">
                 <span class="pulse"></span> LIVE MONITORING
             </div>
-            <div>Updated: July 26, 2026 • 11:09 UTC</div>
+            <div>Updated: July 26, 2026 • 11:15 UTC</div>
         </div>
     </div>
 
@@ -318,12 +391,12 @@
                 
         <div class="source-chip">
             <span class="source-badge">Al Jazeera</span>
-            <a href="https://www.aljazeera.com/news/2026/7/26/female-football-referee-suffers-concussion-amid-male-players-melee?traffic_source=rss" target="_blank" rel="noopener">Female football referee suffers concussion amid male players’ melee</a>
+            <a href="https://www.aljazeera.com/news/2026/7/26/why-the-uk-cancelled-a-military-exercise-in-kenya-and-what-it-means?traffic_source=rss" target="_blank" rel="noopener">Why the UK cancelled a military exercise in Kenya – and what it means</a>
         </div>
         
         <div class="source-chip">
             <span class="source-badge">Al Jazeera</span>
-            <a href="https://www.aljazeera.com/news/2026/7/26/why-the-uk-cancelled-a-military-exercise-in-kenya-and-what-it-means?traffic_source=rss" target="_blank" rel="noopener">Why the UK cancelled a military exercise in Kenya – and what it means</a>
+            <a href="https://www.aljazeera.com/news/2026/7/26/after-strait-of-hormuz-and-red-sea-has-iran-war-now-reached-caspian-sea?traffic_source=rss" target="_blank" rel="noopener">After Strait of Hormuz and Red Sea, has Iran war now reached Caspian Sea?</a>
         </div>
         
         <div class="source-chip">
@@ -340,9 +413,40 @@
         </section>
     </div>
 
+    <!-- Reader Modal Window -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeStoryModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeStoryModal()">&times;</button>
+            <div id="modalContainer"></div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2026 Eye Witness News. All rights reserved.</p>
     </footer>
+
+    <script>
+        function openStoryModal(templateId) {
+            const template = document.getElementById(templateId);
+            if (!template) return;
+            
+            const container = document.getElementById('modalContainer');
+            container.innerHTML = '';
+            container.appendChild(template.content.cloneNode(true));
+            
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeStoryModal(event) {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeStoryModal();
+        });
+    </script>
 
 </body>
 </html>

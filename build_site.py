@@ -84,34 +84,57 @@ def fetch_latest_news():
 def generate_ai_roundup(articles):
     if not api_key:
         print("ERROR: OPENAI_API_KEY environment variable is missing!")
-        # Generate raw HTML dynamically from fetched articles if API key is missing
         hero = articles[0]
         grid_items = articles[1:4] if len(articles) > 1 else articles
         
         grid_html = ""
-        for a in grid_items:
+        for i, a in enumerate(grid_items):
             grid_html += f"""
-            <article class="card">
-                <a href="{a['link']}" target="_blank" rel="noopener" class="card-link">
+            <article class="card news-pallet" onclick="openStoryModal('modal-grid-{i}')">
+                <div class="card-img-wrapper">
                     <img src="{a['image']}" alt="Story Image" class="card-img">
-                    <span class="card-tag">{a['source']}</span>
-                    <h3>{a['title']}</h3>
-                </a>
+                </div>
+                <span class="card-tag">{a['source']}</span>
+                <h3>{a['title']}</h3>
                 <p>{a['summary'][:150]}...</p>
-                <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-link">Read More &rarr;</a>
+                <div class="pallet-footer">
+                    <span class="read-more-link">Read Rewritten Story &rarr;</span>
+                </div>
+
+                <template id="modal-grid-{i}">
+                    <div class="modal-content-wrapper">
+                        <span class="badge">{a['source']}</span>
+                        <h2>{a['title']}</h2>
+                        <img src="{a['image']}" alt="{a['title']}" class="modal-img">
+                        <p class="modal-body">{a['summary']}</p>
+                        <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured directly from wire desk.</div>
+                        <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+                    </div>
+                </template>
             </article>
             """
 
         return f"""
-        <div class="hero-story">
-            <a href="{hero['link']}" target="_blank" rel="noopener" class="story-link">
+        <div class="hero-story news-pallet" onclick="openStoryModal('modal-hero')">
+            <div class="hero-img-wrapper">
                 <img src="{hero['image']}" alt="Lead Story" class="hero-img">
-                <span class="badge">TOP DEVELOPMENT</span>
-                <h2>{hero['title']}</h2>
-            </a>
+            </div>
+            <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
+            <h2>{hero['title']}</h2>
             <p>{hero['summary']}</p>
             <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
-            <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Full Article &rarr;</a>
+            <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+
+            <template id="modal-hero">
+                <div class="modal-content-wrapper">
+                    <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
+                    <h2>{hero['title']}</h2>
+                    <img src="{hero['image']}" alt="{hero['title']}" class="modal-img">
+                    <p class="modal-body">{hero['summary']}</p>
+                    <div class="key-takeaway"><strong>Key Takeaway:</strong> Verified story from {hero['source']}.</div>
+                    <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+                </div>
+            </template>
         </div>
         <div class="grid-container">
             {grid_html}
@@ -129,30 +152,54 @@ def generate_ai_roundup(articles):
     {prompt_content}
 
     Task:
-    Write a sleek, modern news briefing using standard HTML tags only.
+    Write a sleek, interactive news briefing using standard HTML tags only.
+    Rewrite the news into concise, engaging executive summaries.
 
     Structure requirement:
     1. A single lead story wrapper:
-       <div class="hero-story">
-           <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="story-link">
+       <div class="hero-story news-pallet" onclick="openStoryModal('modal-hero')">
+           <div class="hero-img-wrapper">
                <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="hero-img">
-               <span class="badge">TOP DEVELOPMENT</span>
-               <h2>Headline</h2>
-           </a>
-           <p>Overview text...</p>
+           </div>
+           <span class="badge">TOP DEVELOPMENT</span>
+           <h2>[REWRITTEN_HEADLINE]</h2>
+           <p>[REWRITTEN_SUMMARY_PREVIEW]</p>
            <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
-           <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Full Article &rarr;</a>
+           <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+
+           <template id="modal-hero">
+               <div class="modal-content-wrapper">
+                   <span class="badge">TOP DEVELOPMENT</span>
+                   <h2>[REWRITTEN_HEADLINE]</h2>
+                   <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="modal-img">
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY]</p>
+                   <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
+                   <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+               </div>
+           </template>
        </div>
 
-    2. A grid section <div class="grid-container"> containing 3 distinct card items:
-       <article class="card">
-           <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="card-link">
+    2. A grid section <div class="grid-container"> containing 3 distinct card items (use modal-1, modal-2, modal-3 for template IDs):
+       <article class="card news-pallet" onclick="openStoryModal('modal-1')">
+           <div class="card-img-wrapper">
                <img src="[ARTICLE_IMAGE]" alt="Story Image" class="card-img">
-               <span class="card-tag">CATEGORY</span>
-               <h3>Title</h3>
-           </a>
-           <p>Brief summary paragraph...</p>
-           <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-link">Read More &rarr;</a>
+           </div>
+           <span class="card-tag">[CATEGORY_OR_SOURCE]</span>
+           <h3>[REWRITTEN_TITLE]</h3>
+           <p>[REWRITTEN_SHORT_SUMMARY]</p>
+           <div class="pallet-footer">
+               <span class="read-more-link">Read Rewritten Story &rarr;</span>
+           </div>
+
+           <template id="modal-1">
+               <div class="modal-content-wrapper">
+                   <span class="badge">[CATEGORY_OR_SOURCE]</span>
+                   <h2>[REWRITTEN_TITLE]</h2>
+                   <img src="[ARTICLE_IMAGE]" alt="Story Image" class="modal-img">
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY]</p>
+                   <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+               </div>
+           </template>
        </article>
 
     Do not include markdown code fence formatting (no ```html). Output pure, raw HTML directly.
@@ -165,7 +212,6 @@ def generate_ai_roundup(articles):
             temperature=0.7
         )
         content = response.choices[0].message.content
-        # Sanitize code fence tags if LLM ignores formatting rules
         content = re.sub(r'^```html\s*', '', content, flags=re.MULTILINE)
         content = re.sub(r'^```\s*', '', content, flags=re.MULTILINE)
         return content
@@ -282,6 +328,16 @@ def build_index_html(ai_content, raw_articles):
             padding: 0 20px;
         }}
 
+        /* News Pallet Interactivity */
+        .news-pallet {{
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }}
+        .news-pallet:hover {{
+            transform: translateY(-4px);
+            box-shadow: 0 16px 30px -10px rgba(0, 0, 0, 0.12);
+        }}
+
         .hero-story {{
             background: var(--card-bg);
             border-radius: 12px;
@@ -292,19 +348,22 @@ def build_index_html(ai_content, raw_articles):
             position: relative;
             overflow: hidden;
         }}
-        .hero-img {{
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
+        .hero-img-wrapper, .card-img-wrapper {{
+            overflow: hidden;
             border-radius: 8px;
             margin-bottom: 20px;
         }}
-        .story-link {{
-            text-decoration: none;
-            color: inherit;
+        .hero-img {{
+            width: 100%;
+            max-height: 420px;
+            object-fit: cover;
             display: block;
+            transition: transform 0.4s ease;
         }}
-        .story-link:hover h2 {{ color: var(--primary); }}
+        .news-pallet:hover .hero-img,
+        .news-pallet:hover .card-img {{
+            transform: scale(1.03);
+        }}
         .badge {{
             background: var(--primary);
             color: #ffffff;
@@ -323,7 +382,6 @@ def build_index_html(ai_content, raw_articles):
             margin-bottom: 15px;
             line-height: 1.3;
             letter-spacing: -0.5px;
-            transition: color 0.2s ease;
         }}
         .hero-story p {{
             font-size: 1.05rem;
@@ -364,23 +422,16 @@ def build_index_html(ai_content, raw_articles):
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             flex-direction: column;
         }}
-        .card:hover {{
-            transform: translateY(-3px);
-            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08);
-        }}
         .card-img {{
             width: 100%;
-            height: 180px;
+            height: 200px;
             object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            display: block;
+            transition: transform 0.4s ease;
         }}
-        .card-link {{ text-decoration: none; color: inherit; }}
-        .card-link:hover h3 {{ color: var(--primary); }}
         .card-tag {{
             font-size: 0.7rem;
             font-weight: 700;
@@ -395,7 +446,6 @@ def build_index_html(ai_content, raw_articles):
             color: var(--dark);
             margin-bottom: 12px;
             line-height: 1.35;
-            transition: color 0.2s ease;
         }}
         .card p {{
             font-size: 0.95rem;
@@ -403,13 +453,83 @@ def build_index_html(ai_content, raw_articles):
             margin-bottom: 15px;
             flex-grow: 1;
         }}
+        .pallet-footer {{
+            margin-top: auto;
+            padding-top: 10px;
+        }}
         .read-more-link {{
             color: var(--primary);
-            text-decoration: none;
             font-weight: 700;
             font-size: 0.88rem;
         }}
-        .read-more-link:hover {{ text-decoration: underline; }}
+
+        /* Modal View Dialog */
+        .modal-overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }}
+        .modal-overlay.active {{
+            display: flex;
+        }}
+        .modal-card {{
+            background: #ffffff;
+            width: 100%;
+            max-width: 720px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 16px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modal-fadeIn 0.25s ease-out;
+        }}
+        @keyframes modal-fadeIn {{
+            from {{ opacity: 0; transform: scale(0.95); }}
+            to {{ opacity: 1; transform: scale(1); }}
+        }}
+        .modal-close-btn {{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f1f5f9;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .modal-close-btn:hover {{
+            background: var(--primary);
+            color: #ffffff;
+        }}
+        .modal-img {{
+            width: 100%;
+            max-height: 350px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 15px 0 20px 0;
+        }}
+        .modal-body {{
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }}
 
         .sources-section {{
             background: var(--card-bg);
@@ -463,13 +583,12 @@ def build_index_html(ai_content, raw_articles):
             text-align: center;
             font-size: 0.85rem;
         }}
-        footer a {{ color: #94a3b8; text-decoration: none; margin: 0 8px; }}
-        footer a:hover {{ color: #ffffff; }}
 
         @media (max-width: 768px) {{
             .hero-story {{ padding: 25px; }}
             .hero-story h2 {{ font-size: 1.5rem; }}
             .logo {{ font-size: 1.8rem; }}
+            .modal-card {{ padding: 20px; }}
         }}
     </style>
 </head>
@@ -507,9 +626,40 @@ def build_index_html(ai_content, raw_articles):
         </section>
     </div>
 
+    <!-- Reader Modal Window -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeStoryModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeStoryModal()">&times;</button>
+            <div id="modalContainer"></div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; {datetime.datetime.now().year} Eye Witness News. All rights reserved.</p>
     </footer>
+
+    <script>
+        function openStoryModal(templateId) {{
+            const template = document.getElementById(templateId);
+            if (!template) return;
+            
+            const container = document.getElementById('modalContainer');
+            container.innerHTML = '';
+            container.appendChild(template.content.cloneNode(true));
+            
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }}
+
+        function closeStoryModal(event) {{
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }}
+
+        document.addEventListener('keydown', function(e) {{
+            if (e.key === 'Escape') closeStoryModal();
+        }});
+    </script>
 
 </body>
 </html>

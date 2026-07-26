@@ -2,9 +2,10 @@ name: Deploy Eye Witness News
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours
-  workflow_dispatch:       # Allows manual updates via GitHub Actions UI
+    - cron: '*/30 * * * *'  # Runs automatically every 30 minutes
+  workflow_dispatch:        # Allows manual updates via GitHub Actions UI
 
+# Required permissions for deploying static files to GitHub Pages
 permissions:
   contents: write
 
@@ -30,7 +31,7 @@ jobs:
         run: python build_site.py
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./

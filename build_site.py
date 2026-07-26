@@ -21,13 +21,13 @@ def extract_image_url(entry):
     # 1. Check media_content
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
-            if 'url' in media:
+            if isinstance(media, dict) and 'url' in media:
                 return media['url']
     
     # 2. Check media_thumbnail
     if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
         for media in entry.media_thumbnail:
-            if 'url' in media:
+            if isinstance(media, dict) and 'url' in media:
                 return media['url']
 
     # 3. Check enclosures
@@ -42,7 +42,7 @@ def extract_image_url(entry):
     if match:
         return match.group(1)
 
-    # 5. Fallback placeholder if no image exists in feed
+    # 5. Generic stock fallback if feed has no media
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80"
 
 def fetch_latest_news():
@@ -69,6 +69,7 @@ def fetch_latest_news():
         except Exception as e:
             print(f"Error fetching feed from {source}: {e}")
 
+    # Fallback default if all feeds fail
     if not articles:
         articles.append({
             "source": "Eye Witness Desk",
@@ -83,15 +84,40 @@ def fetch_latest_news():
 def generate_ai_roundup(articles):
     if not api_key:
         print("ERROR: OPENAI_API_KEY environment variable is missing!")
-        return """
+        # Generate raw HTML dynamically from fetched articles if API key is missing
+        hero = articles[0]
+        grid_items = articles[1:4] if len(articles) > 1 else articles
+        
+        grid_html = ""
+        for a in grid_items:
+            grid_html += f"""
+            <article class="card">
+                <a href="{a['link']}" target="_blank" rel="noopener" class="card-link">
+                    <img src="{a['image']}" alt="Story Image" class="card-img">
+                    <span class="card-tag">{a['source']}</span>
+                    <h3>{a['title']}</h3>
+                </a>
+                <p>{a['summary'][:150]}...</p>
+                <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-link">Read More &rarr;</a>
+            </article>
+            """
+
+        return f"""
         <div class="hero-story">
-            <span class="badge">SYSTEM ALERT</span>
-            <h2>News Briefing Engine Updating</h2>
-            <p>Please ensure OPENAI_API_KEY is configured in GitHub Repository Secrets.</p>
+            <a href="{hero['link']}" target="_blank" rel="noopener" class="story-link">
+                <img src="{hero['image']}" alt="Lead Story" class="hero-img">
+                <span class="badge">TOP DEVELOPMENT</span>
+                <h2>{hero['title']}</h2>
+            </a>
+            <p>{hero['summary']}</p>
+            <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
+            <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Full Article &rarr;</a>
+        </div>
+        <div class="grid-container">
+            {grid_html}
         </div>
         """
 
-    # Build prompt payload including image and article URL references
     prompt_content = "\n".join([
         f"- Source: {a['source']}\n  Title: {a['title']}\n  Summary: {a['summary']}\n  Link: {a['link']}\n  Image: {a['image']}"
         for a in articles
@@ -99,12 +125,11 @@ def generate_ai_roundup(articles):
     
     prompt = f"""
     You are the Chief Editor for 'Eye Witness News'.
-    Below are top live wire items collected today (including source link and image URL for each):
-
+    Below are live wire items collected today:
     {prompt_content}
 
     Task:
-    Write a sleek, modern news briefing using standard HTML tags only. Make stories interactive and visually engaging.
+    Write a sleek, modern news briefing using standard HTML tags only.
 
     Structure requirement:
     1. A single lead story wrapper:
@@ -123,16 +148,14 @@ def generate_ai_roundup(articles):
        <article class="card">
            <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="card-link">
                <img src="[ARTICLE_IMAGE]" alt="Story Image" class="card-img">
-               <span class="card-tag">CATEGORY (e.g. REGIONAL, INT'L, TECH)</span>
+               <span class="card-tag">CATEGORY</span>
                <h3>Title</h3>
            </a>
            <p>Brief summary paragraph...</p>
            <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-link">Read More &rarr;</a>
        </article>
 
-    Guidelines:
-    - Match each story with its corresponding URL and Image from the provided input data.
-    - Do not wrap the output in markdown code fence syntax (no ```html). Output pure, formatted HTML directly.
+    Do not include markdown code fence formatting (no ```html). Output pure, raw HTML directly.
     """
 
     try:
@@ -141,16 +164,14 @@ def generate_ai_roundup(articles):
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        # Sanitize code fence tags if LLM ignores formatting rules
+        content = re.sub(r'^```html\s*', '', content, flags=re.MULTILINE)
+        content = re.sub(r'^```\s*', '', content, flags=re.MULTILINE)
+        return content
     except Exception as e:
         print(f"OpenAI API Error: {e}")
-        return """
-        <div class="hero-story">
-            <span class="badge">LIVE DISPATCH</span>
-            <h2>Eye Witness Global Intel Briefing</h2>
-            <p>Our automated monitoring systems are actively digesting regional and global news streams. Full briefing updating shortly.</p>
-        </div>
-        """
+        return "<p>Error generating AI briefing. Check logs.</p>"
 
 def build_index_html(ai_content, raw_articles):
     current_date = datetime.datetime.now(datetime.timezone.utc).strftime("%B %d, %Y • %H:%M UTC")
@@ -261,7 +282,6 @@ def build_index_html(ai_content, raw_articles):
             padding: 0 20px;
         }}
 
-        /* Hero Feature Section */
         .hero-story {{
             background: var(--card-bg);
             border-radius: 12px;
@@ -284,9 +304,7 @@ def build_index_html(ai_content, raw_articles):
             color: inherit;
             display: block;
         }}
-        .story-link:hover h2 {{
-            color: var(--primary);
-        }}
+        .story-link:hover h2 {{ color: var(--primary); }}
         .badge {{
             background: var(--primary);
             color: #ffffff;
@@ -332,11 +350,8 @@ def build_index_html(ai_content, raw_articles):
             font-size: 0.9rem;
             transition: background 0.2s ease;
         }}
-        .read-more-btn:hover {{
-            background: var(--primary);
-        }}
+        .read-more-btn:hover {{ background: var(--primary); }}
 
-        /* Card Grid Layout */
         .grid-container {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -364,13 +379,8 @@ def build_index_html(ai_content, raw_articles):
             border-radius: 8px;
             margin-bottom: 15px;
         }}
-        .card-link {{
-            text-decoration: none;
-            color: inherit;
-        }}
-        .card-link:hover h3 {{
-            color: var(--primary);
-        }}
+        .card-link {{ text-decoration: none; color: inherit; }}
+        .card-link:hover h3 {{ color: var(--primary); }}
         .card-tag {{
             font-size: 0.7rem;
             font-weight: 700;
@@ -399,22 +409,7 @@ def build_index_html(ai_content, raw_articles):
             font-weight: 700;
             font-size: 0.88rem;
         }}
-        .read-more-link:hover {{
-            text-decoration: underline;
-        }}
-
-        .ad-banner {{
-            background: #cbd5e1;
-            border: 1px dashed #64748b;
-            border-radius: 8px;
-            text-align: center;
-            padding: 18px;
-            margin: 25px 0;
-            color: #334155;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }}
+        .read-more-link:hover {{ text-decoration: underline; }}
 
         .sources-section {{
             background: var(--card-bg);
@@ -499,18 +494,9 @@ def build_index_html(ai_content, raw_articles):
     </header>
 
     <div class="container">
-        
-        <div class="ad-banner">
-            <span>ADVERTISEMENT PLACEHOLDER (ADSENSE HEADER BANNER)</span>
-        </div>
-
         <main>
             {ai_content}
         </main>
-
-        <div class="ad-banner">
-            <span>ADVERTISEMENT PLACEHOLDER (ADSENSE IN-FEED BANNER)</span>
-        </div>
 
         <section class="sources-section">
             <h3>Verified Wire Feeds</h3>
@@ -519,16 +505,10 @@ def build_index_html(ai_content, raw_articles):
                 {sources_list_html}
             </div>
         </section>
-
     </div>
 
     <footer>
         <p>&copy; {datetime.datetime.now().year} Eye Witness News. All rights reserved.</p>
-        <p style="margin-top: 8px;">
-            <a href="#">Privacy Policy</a> | 
-            <a href="#">Terms of Service</a> | 
-            <a href="#">Editorial Disclosures</a>
-        </p>
     </footer>
 
 </body>
@@ -541,7 +521,7 @@ if __name__ == "__main__":
     print("Fetching live RSS feeds...")
     news_items = fetch_latest_news()
     print(f"Successfully retrieved {len(news_items)} wire stories.")
-    print("Generating Eye Witness News AI briefing...")
+    print("Generating Eye Witness News briefing...")
     ai_summary = generate_ai_roundup(news_items)
     print("Compiling landing page index.html...")
     build_index_html(ai_summary, news_items)

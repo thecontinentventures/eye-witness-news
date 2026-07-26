@@ -1,5 +1,6 @@
 import os
 import re
+import html
 import datetime
 import requests
 import feedparser
@@ -18,31 +19,26 @@ FEEDS = {
 
 def extract_image_url(entry):
     """Extracts main story image from various RSS enclosure/media formats."""
-    # 1. Check media_content
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
                 return media['url']
     
-    # 2. Check media_thumbnail
     if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
         for media in entry.media_thumbnail:
             if isinstance(media, dict) and 'url' in media:
                 return media['url']
 
-    # 3. Check enclosures
     if hasattr(entry, 'enclosures') and entry.enclosures:
         for enc in entry.enclosures:
             if enc.get('type', '').startswith('image/'):
                 return enc.get('href')
 
-    # 4. Fallback: Parse <img> tag from entry summary/description
     summary_html = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
     match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', summary_html, re.IGNORECASE)
     if match:
         return match.group(1)
 
-    # 5. Generic stock fallback if feed has no media
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80"
 
 def fetch_latest_news():
@@ -59,17 +55,14 @@ def fetch_latest_news():
                 for entry in feed.entries[:2]:
                     articles.append({
                         "source": source,
-                        "title": entry.title,
-                        "summary": getattr(entry, 'summary', entry.title),
+                        "title": html.escape(entry.title),
+                        "summary": html.escape(getattr(entry, 'summary', entry.title)),
                         "link": entry.link,
                         "image": extract_image_url(entry)
                     })
-            else:
-                print(f"Warning: {source} returned status {response.status_code}")
         except Exception as e:
             print(f"Error fetching feed from {source}: {e}")
 
-    # Fallback default if all feeds fail
     if not articles:
         articles.append({
             "source": "Eye Witness Desk",
@@ -81,65 +74,69 @@ def fetch_latest_news():
 
     return articles
 
-def generate_ai_roundup(articles):
-    if not api_key:
-        print("ERROR: OPENAI_API_KEY environment variable is missing!")
-        hero = articles[0]
-        grid_items = articles[1:4] if len(articles) > 1 else articles
-        
-        grid_html = ""
-        for i, a in enumerate(grid_items):
-            grid_html += f"""
-            <article class="card news-pallet" onclick="openStoryModal('modal-grid-{i}')">
-                <div class="card-img-wrapper">
-                    <img src="{a['image']}" alt="Story Image" class="card-img">
-                </div>
-                <span class="card-tag">{a['source']}</span>
-                <h3>{a['title']}</h3>
-                <p>{a['summary'][:150]}...</p>
-                <div class="pallet-footer">
-                    <span class="read-more-link">Read Rewritten Story &rarr;</span>
-                </div>
+def render_fallback_html(articles):
+    """Fallback generator when OpenAI key is missing or fails."""
+    hero = articles[0] if articles else {}
+    grid_items = articles[1:4] if len(articles) > 1 else articles
 
-                <template id="modal-grid-{i}">
-                    <div class="modal-content-wrapper">
-                        <span class="badge">{a['source']}</span>
-                        <h2>{a['title']}</h2>
-                        <img src="{a['image']}" alt="{a['title']}" class="modal-img">
-                        <p class="modal-body">{a['summary']}</p>
-                        <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured directly from wire desk.</div>
-                        <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
-                    </div>
-                </template>
-            </article>
-            """
-
-        return f"""
-        <div class="hero-story news-pallet" onclick="openStoryModal('modal-hero')">
-            <div class="hero-img-wrapper">
-                <img src="{hero['image']}" alt="Lead Story" class="hero-img">
+    grid_html = ""
+    for i, a in enumerate(grid_items):
+        grid_html += f"""
+        <article class="card news-pallet" onclick="openStoryModal('modal-grid-{i}')">
+            <div class="card-img-wrapper">
+                <img src="{a['image']}" alt="Story Image" class="card-img">
             </div>
-            <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
-            <h2>{hero['title']}</h2>
-            <p>{hero['summary']}</p>
-            <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
-            <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+            <span class="card-tag">{a['source']}</span>
+            <h3>{a['title']}</h3>
+            <p>{a['summary'][:150]}...</p>
+            <div class="pallet-footer">
+                <span class="read-more-link">Read Story &rarr;</span>
+            </div>
 
-            <template id="modal-hero">
+            <template id="modal-grid-{i}">
                 <div class="modal-content-wrapper">
-                    <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
-                    <h2>{hero['title']}</h2>
-                    <img src="{hero['image']}" alt="{hero['title']}" class="modal-img">
-                    <p class="modal-body">{hero['summary']}</p>
-                    <div class="key-takeaway"><strong>Key Takeaway:</strong> Verified story from {hero['source']}.</div>
-                    <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+                    <span class="badge">{a['source']}</span>
+                    <h2>{a['title']}</h2>
+                    <img src="{a['image']}" alt="Story Image" class="modal-img">
+                    <p class="modal-body">{a['summary']}</p>
+                    <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {a['source']}.</div>
+                    <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                 </div>
             </template>
-        </div>
-        <div class="grid-container">
-            {grid_html}
-        </div>
+        </article>
         """
+
+    return f"""
+    <div class="hero-story news-pallet" onclick="openStoryModal('modal-hero')">
+        <div class="hero-img-wrapper">
+            <img src="{hero['image']}" alt="Lead Story" class="hero-img">
+        </div>
+        <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
+        <h2>{hero['title']}</h2>
+        <p>{hero['summary']}</p>
+        <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
+        <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+
+        <template id="modal-hero">
+            <div class="modal-content-wrapper">
+                <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
+                <h2>{hero['title']}</h2>
+                <img src="{hero['image']}" alt="Lead Story" class="modal-img">
+                <p class="modal-body">{hero['summary']}</p>
+                <div class="key-takeaway"><strong>Key Takeaway:</strong> Verified story from {hero['source']}.</div>
+                <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
+            </div>
+        </template>
+    </div>
+    <div class="grid-container">
+        {grid_html}
+    </div>
+    """
+
+def generate_ai_roundup(articles):
+    if not client:
+        print("NOTICE: OPENAI_API_KEY environment variable is missing. Generating standard briefing...")
+        return render_fallback_html(articles)
 
     prompt_content = "\n".join([
         f"- Source: {a['source']}\n  Title: {a['title']}\n  Summary: {a['summary']}\n  Link: {a['link']}\n  Image: {a['image']}"
@@ -216,8 +213,9 @@ def generate_ai_roundup(articles):
         content = re.sub(r'^```\s*', '', content, flags=re.MULTILINE)
         return content
     except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        return "<p>Error generating AI briefing. Check logs.</p>"
+        print(f"OpenAI API Error Details: {e}")
+        # Fallback to pure HTML rendering if the API call throws an exception
+        return render_fallback_html(articles)
 
 def build_index_html(ai_content, raw_articles):
     current_date = datetime.datetime.now(datetime.timezone.utc).strftime("%B %d, %Y • %H:%M UTC")

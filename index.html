@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eye Witness News | Real-Time Global & Regional Intel</title>
-    <!-- AdSense Header Tag Placeholder -->
-    <!-- <script async src="[https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID](https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID)" crossorigin="anonymous"></script> -->
     <style>
         :root {
             --primary: #dc2626;
@@ -29,7 +27,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Utility Header Bar */
         .top-bar {
             background: var(--dark);
             color: var(--text-muted);
@@ -67,7 +64,6 @@
             100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
         }
 
-        /* Main Site Header */
         header {
             background: #ffffff;
             border-bottom: 3px solid var(--primary);
@@ -93,7 +89,6 @@
         .logo span { color: var(--primary); }
         .tagline { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
 
-        /* Main Grid & Layout */
         .container {
             max-width: 1140px;
             margin: 30px auto;
@@ -109,6 +104,22 @@
             border: 1px solid var(--border);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             position: relative;
+            overflow: hidden;
+        }
+        .hero-img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .story-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .story-link:hover h2 {
+            color: var(--primary);
         }
         .badge {
             background: var(--primary);
@@ -128,6 +139,7 @@
             margin-bottom: 15px;
             line-height: 1.3;
             letter-spacing: -0.5px;
+            transition: color 0.2s ease;
         }
         .hero-story p {
             font-size: 1.05rem;
@@ -141,6 +153,21 @@
             border-radius: 0 6px 6px 0;
             font-size: 0.95rem;
             color: #334155;
+            margin-bottom: 20px;
+        }
+        .read-more-btn {
+            display: inline-block;
+            background: var(--dark);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+        .read-more-btn:hover {
+            background: var(--primary);
         }
 
         /* Card Grid Layout */
@@ -152,15 +179,31 @@
         }
         .card {
             background: var(--card-bg);
-            padding: 28px;
+            padding: 24px;
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
         }
         .card:hover {
             transform: translateY(-3px);
             box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08);
+        }
+        .card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+        .card-link:hover h3 {
+            color: var(--primary);
         }
         .card-tag {
             font-size: 0.7rem;
@@ -176,13 +219,24 @@
             color: var(--dark);
             margin-bottom: 12px;
             line-height: 1.35;
+            transition: color 0.2s ease;
         }
         .card p {
             font-size: 0.95rem;
             color: var(--text-muted);
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+        .read-more-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+        .read-more-link:hover {
+            text-decoration: underline;
         }
 
-        /* Ad Banner Placeholder Slots */
         .ad-banner {
             background: #cbd5e1;
             border: 1px dashed #64748b;
@@ -196,7 +250,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Verified Feeds Footer Grid */
         .sources-section {
             background: var(--card-bg);
             border-radius: 12px;
@@ -241,7 +294,6 @@
         }
         .source-chip a:hover { color: var(--primary); }
 
-        /* Footer */
         footer {
             background: var(--dark);
             color: var(--text-muted);
@@ -267,7 +319,7 @@
             <div class="live-indicator">
                 <span class="pulse"></span> LIVE MONITORING
             </div>
-            <div>Updated: July 26, 2026 • 10:49 UTC</div>
+            <div>Updated: July 26, 2026 • 11:02 UTC</div>
         </div>
     </div>
 
@@ -282,12 +334,10 @@
 
     <div class="container">
         
-        <!-- Top Ad Placement Slot -->
         <div class="ad-banner">
             <span>ADVERTISEMENT PLACEHOLDER (ADSENSE HEADER BANNER)</span>
         </div>
 
-        <!-- AI Briefing Content -->
         <main>
             
         <div class="hero-story">
@@ -298,12 +348,10 @@
         
         </main>
 
-        <!-- Mid-Page Ad Placement Slot -->
         <div class="ad-banner">
             <span>ADVERTISEMENT PLACEHOLDER (ADSENSE IN-FEED BANNER)</span>
         </div>
 
-        <!-- Verified Live Sources Section -->
         <section class="sources-section">
             <h3>Verified Wire Feeds</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted);">Real-time sources captured during this briefing cycle:</p>
@@ -311,12 +359,12 @@
                 
         <div class="source-chip">
             <span class="source-badge">Al Jazeera</span>
-            <a href="https://www.aljazeera.com/sports/2026/7/26/japanese-football-legend-king-kazu-59-scores-first-goal-in-four-years?traffic_source=rss" target="_blank" rel="noopener">Japanese football legend ‘King Kazu’, 59, scores first goal in four years</a>
+            <a href="https://www.aljazeera.com/news/2026/7/26/why-the-uk-cancelled-a-military-exercise-in-kenya-and-what-it-means?traffic_source=rss" target="_blank" rel="noopener">Why the UK cancelled a military exercise in Kenya – and what it means</a>
         </div>
         
         <div class="source-chip">
             <span class="source-badge">Al Jazeera</span>
-            <a href="https://www.aljazeera.com/gallery/2026/7/26/photos-wildfires-in-france-drive-250000-people-from-their-homes?traffic_source=rss" target="_blank" rel="noopener">Photos: Wildfires in France drive 250,000 people from their homes</a>
+            <a href="https://www.aljazeera.com/news/2026/7/26/after-strait-of-hormuz-and-red-sea-has-iran-war-now-reached-caspian-sea?traffic_source=rss" target="_blank" rel="noopener">After Strait of Hormuz and Red Sea, has Iran war now reached Caspian Sea?</a>
         </div>
         
         <div class="source-chip">

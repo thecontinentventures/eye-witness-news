@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 import requests
 import feedparser
@@ -15,9 +16,37 @@ FEEDS = {
     "BBC News": "http://feeds.bbci.co.uk/news/rss.xml"
 }
 
+def extract_image_url(entry):
+    """Extracts main story image from various RSS enclosure/media formats."""
+    # 1. Check media_content
+    if hasattr(entry, 'media_content') and entry.media_content:
+        for media in entry.media_content:
+            if 'url' in media:
+                return media['url']
+    
+    # 2. Check media_thumbnail
+    if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
+        for media in entry.media_thumbnail:
+            if 'url' in media:
+                return media['url']
+
+    # 3. Check enclosures
+    if hasattr(entry, 'enclosures') and entry.enclosures:
+        for enc in entry.enclosures:
+            if enc.get('type', '').startswith('image/'):
+                return enc.get('href')
+
+    # 4. Fallback: Parse <img> tag from entry summary/description
+    summary_html = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
+    match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', summary_html, re.IGNORECASE)
+    if match:
+        return match.group(1)
+
+    # 5. Fallback placeholder if no image exists in feed
+    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80"
+
 def fetch_latest_news():
     articles = []
-    # Browser User-Agent header to prevent HTTP 403 forbidden responses
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
@@ -32,20 +61,21 @@ def fetch_latest_news():
                         "source": source,
                         "title": entry.title,
                         "summary": getattr(entry, 'summary', entry.title),
-                        "link": entry.link
+                        "link": entry.link,
+                        "image": extract_image_url(entry)
                     })
             else:
                 print(f"Warning: {source} returned status {response.status_code}")
         except Exception as e:
             print(f"Error fetching feed from {source}: {e}")
 
-    # Fallback default if all feeds fail
     if not articles:
         articles.append({
             "source": "Eye Witness Desk",
             "title": "Global News Monitoring Active",
             "summary": "Tracking real-time breaking news from regional and international streams.",
-            "link": "https://nation.africa"
+            "link": "https://nation.africa",
+            "image": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80"
         })
 
     return articles
@@ -61,20 +91,48 @@ def generate_ai_roundup(articles):
         </div>
         """
 
-    prompt_content = "\n".join([f"- [{a['source']}] {a['title']}: {a['summary']}" for a in articles])
+    # Build prompt payload including image and article URL references
+    prompt_content = "\n".join([
+        f"- Source: {a['source']}\n  Title: {a['title']}\n  Summary: {a['summary']}\n  Link: {a['link']}\n  Image: {a['image']}"
+        for a in articles
+    ])
     
     prompt = f"""
     You are the Chief Editor for 'Eye Witness News'.
-    Below are top live wire items collected today:
+    Below are top live wire items collected today (including source link and image URL for each):
+
     {prompt_content}
 
     Task:
-    Write a sleek, modern news briefing using standard HTML tags only.
-    Structure requirement:
-    1. A single lead story wrapper: <div class="hero-story"><span class="badge">TOP DEVELOPMENT</span><h2>Headline</h2><p>Overview text...</p><div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div></div>
-    2. A grid section <div class="grid-container"> containing 3 distinct <article class="card"><span class="card-tag">CATEGORY</span><h3>Title</h3><p>Brief summary paragraph...</p></article> blocks covering Regional, International, and Economy/Tech focus.
+    Write a sleek, modern news briefing using standard HTML tags only. Make stories interactive and visually engaging.
 
-    Do not include markdown code fence formatting (no ```html). Output clean, formatted HTML directly.
+    Structure requirement:
+    1. A single lead story wrapper:
+       <div class="hero-story">
+           <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="story-link">
+               <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="hero-img">
+               <span class="badge">TOP DEVELOPMENT</span>
+               <h2>Headline</h2>
+           </a>
+           <p>Overview text...</p>
+           <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
+           <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Full Article &rarr;</a>
+       </div>
+
+    2. A grid section <div class="grid-container"> containing 3 distinct card items:
+       <article class="card">
+           <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="card-link">
+               <img src="[ARTICLE_IMAGE]" alt="Story Image" class="card-img">
+               <span class="card-tag">CATEGORY (e.g. REGIONAL, INT'L, TECH)</span>
+               <h3>Title</h3>
+           </a>
+           <p>Brief summary paragraph...</p>
+           <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-link">Read More &rarr;</a>
+       </article>
+
+    Guidelines:
+    - Match each story with its corresponding URL and Image from the provided input data.
+    - Do not wrap the output in markdown code fence syntax (no ```html). Output pure, formatted HTML directly.
     """
 
     try:
@@ -112,8 +170,6 @@ def build_index_html(ai_content, raw_articles):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eye Witness News | Real-Time Global & Regional Intel</title>
-    <!-- AdSense Header Tag Placeholder -->
-    <!-- <script async src="[https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID](https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID)" crossorigin="anonymous"></script> -->
     <style>
         :root {{
             --primary: #dc2626;
@@ -137,7 +193,6 @@ def build_index_html(ai_content, raw_articles):
             -webkit-font-smoothing: antialiased;
         }}
 
-        /* Utility Header Bar */
         .top-bar {{
             background: var(--dark);
             color: var(--text-muted);
@@ -175,7 +230,6 @@ def build_index_html(ai_content, raw_articles):
             100% {{ box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }}
         }}
 
-        /* Main Site Header */
         header {{
             background: #ffffff;
             border-bottom: 3px solid var(--primary);
@@ -201,7 +255,6 @@ def build_index_html(ai_content, raw_articles):
         .logo span {{ color: var(--primary); }}
         .tagline {{ font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }}
 
-        /* Main Grid & Layout */
         .container {{
             max-width: 1140px;
             margin: 30px auto;
@@ -217,6 +270,22 @@ def build_index_html(ai_content, raw_articles):
             border: 1px solid var(--border);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             position: relative;
+            overflow: hidden;
+        }}
+        .hero-img {{
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }}
+        .story-link {{
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }}
+        .story-link:hover h2 {{
+            color: var(--primary);
         }}
         .badge {{
             background: var(--primary);
@@ -236,6 +305,7 @@ def build_index_html(ai_content, raw_articles):
             margin-bottom: 15px;
             line-height: 1.3;
             letter-spacing: -0.5px;
+            transition: color 0.2s ease;
         }}
         .hero-story p {{
             font-size: 1.05rem;
@@ -249,6 +319,21 @@ def build_index_html(ai_content, raw_articles):
             border-radius: 0 6px 6px 0;
             font-size: 0.95rem;
             color: #334155;
+            margin-bottom: 20px;
+        }}
+        .read-more-btn {{
+            display: inline-block;
+            background: var(--dark);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }}
+        .read-more-btn:hover {{
+            background: var(--primary);
         }}
 
         /* Card Grid Layout */
@@ -260,15 +345,31 @@ def build_index_html(ai_content, raw_articles):
         }}
         .card {{
             background: var(--card-bg);
-            padding: 28px;
+            padding: 24px;
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
         }}
         .card:hover {{
             transform: translateY(-3px);
             box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08);
+        }}
+        .card-img {{
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }}
+        .card-link {{
+            text-decoration: none;
+            color: inherit;
+        }}
+        .card-link:hover h3 {{
+            color: var(--primary);
         }}
         .card-tag {{
             font-size: 0.7rem;
@@ -284,13 +385,24 @@ def build_index_html(ai_content, raw_articles):
             color: var(--dark);
             margin-bottom: 12px;
             line-height: 1.35;
+            transition: color 0.2s ease;
         }}
         .card p {{
             font-size: 0.95rem;
             color: var(--text-muted);
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }}
+        .read-more-link {{
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.88rem;
+        }}
+        .read-more-link:hover {{
+            text-decoration: underline;
         }}
 
-        /* Ad Banner Placeholder Slots */
         .ad-banner {{
             background: #cbd5e1;
             border: 1px dashed #64748b;
@@ -304,7 +416,6 @@ def build_index_html(ai_content, raw_articles):
             letter-spacing: 0.5px;
         }}
 
-        /* Verified Feeds Footer Grid */
         .sources-section {{
             background: var(--card-bg);
             border-radius: 12px;
@@ -349,7 +460,6 @@ def build_index_html(ai_content, raw_articles):
         }}
         .source-chip a:hover {{ color: var(--primary); }}
 
-        /* Footer */
         footer {{
             background: var(--dark);
             color: var(--text-muted);
@@ -390,22 +500,18 @@ def build_index_html(ai_content, raw_articles):
 
     <div class="container">
         
-        <!-- Top Ad Placement Slot -->
         <div class="ad-banner">
             <span>ADVERTISEMENT PLACEHOLDER (ADSENSE HEADER BANNER)</span>
         </div>
 
-        <!-- AI Briefing Content -->
         <main>
             {ai_content}
         </main>
 
-        <!-- Mid-Page Ad Placement Slot -->
         <div class="ad-banner">
             <span>ADVERTISEMENT PLACEHOLDER (ADSENSE IN-FEED BANNER)</span>
         </div>
 
-        <!-- Verified Live Sources Section -->
         <section class="sources-section">
             <h3>Verified Wire Feeds</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted);">Real-time sources captured during this briefing cycle:</p>

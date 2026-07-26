@@ -1,0 +1,442 @@
+import os
+import datetime
+import requests
+import feedparser
+from openai import OpenAI
+
+# Initialize OpenAI client safely
+api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
+
+FEEDS = {
+    "Nation Africa": "https://nation.africa/kenya/rss",
+    "Citizen Digital": "https://citizen.digital/news/rss",
+    "Al Jazeera": "https://www.aljazeera.com/xml/rss/all.xml",
+    "BBC News": "http://feeds.bbci.co.uk/news/rss.xml"
+}
+
+def fetch_latest_news():
+    articles = []
+    # Browser User-Agent header to prevent HTTP 403 forbidden responses
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    for source, url in FEEDS.items():
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                feed = feedparser.parse(response.content)
+                for entry in feed.entries[:2]:
+                    articles.append({
+                        "source": source,
+                        "title": entry.title,
+                        "summary": getattr(entry, 'summary', entry.title),
+                        "link": entry.link
+                    })
+            else:
+                print(f"Warning: {source} returned status {response.status_code}")
+        except Exception as e:
+            print(f"Error fetching feed from {source}: {e}")
+
+    # Fallback default if all feeds fail
+    if not articles:
+        articles.append({
+            "source": "Eye Witness Desk",
+            "title": "Global News Monitoring Active",
+            "summary": "Tracking real-time breaking news from regional and international streams.",
+            "link": "https://nation.africa"
+        })
+
+    return articles
+
+def generate_ai_roundup(articles):
+    if not api_key:
+        print("ERROR: OPENAI_API_KEY environment variable is missing!")
+        return """
+        <div class="hero-story">
+            <span class="badge">SYSTEM ALERT</span>
+            <h2>News Briefing Engine Updating</h2>
+            <p>Please ensure OPENAI_API_KEY is configured in GitHub Repository Secrets.</p>
+        </div>
+        """
+
+    prompt_content = "\n".join([f"- [{a['source']}] {a['title']}: {a['summary']}" for a in articles])
+    
+    prompt = f"""
+    You are the Chief Editor for 'Eye Witness News'.
+    Below are top live wire items collected today:
+    {prompt_content}
+
+    Task:
+    Write a sleek, modern news briefing using standard HTML tags only.
+    Structure requirement:
+    1. A single lead story wrapper: <div class="hero-story"><span class="badge">TOP DEVELOPMENT</span><h2>Headline</h2><p>Overview text...</p><div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div></div>
+    2. A grid section <div class="grid-container"> containing 3 distinct <article class="card"><span class="card-tag">CATEGORY</span><h3>Title</h3><p>Brief summary paragraph...</p></article> blocks covering Regional, International, and Economy/Tech focus.
+
+    Do not include markdown code fence formatting (no ```html). Output clean, formatted HTML directly.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"OpenAI API Error: {e}")
+        return """
+        <div class="hero-story">
+            <span class="badge">LIVE DISPATCH</span>
+            <h2>Eye Witness Global Intel Briefing</h2>
+            <p>Our automated monitoring systems are actively digesting regional and global news streams. Full briefing updating shortly.</p>
+        </div>
+        """
+
+def build_index_html(ai_content, raw_articles):
+    current_date = datetime.datetime.now(datetime.timezone.utc).strftime("%B %d, %Y • %H:%M UTC")
+
+    sources_list_html = ""
+    for a in raw_articles:
+        sources_list_html += f"""
+        <div class="source-chip">
+            <span class="source-badge">{a['source']}</span>
+            <a href="{a['link']}" target="_blank" rel="noopener">{a['title']}</a>
+        </div>
+        """
+
+    html_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Witness News | Real-Time Global & Regional Intel</title>
+    <!-- AdSense Header Tag Placeholder -->
+    <!-- <script async src="[https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID](https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_ID)" crossorigin="anonymous"></script> -->
+    <style>
+        :root {{
+            --primary: #dc2626;
+            --primary-hover: #b91c1c;
+            --dark: #0f172a;
+            --dark-card: #1e293b;
+            --gray-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }}
+
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: var(--gray-bg);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }}
+
+        /* Utility Header Bar */
+        .top-bar {{
+            background: var(--dark);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+        }}
+        .top-bar-inner {{
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .live-indicator {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #4ade80;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }}
+        .pulse {{
+            width: 8px;
+            height: 8px;
+            background-color: #4ade80;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-ring 1.8s infinite;
+        }}
+        @keyframes pulse-ring {{
+            0% {{ box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }}
+            70% {{ box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }}
+        }}
+
+        /* Main Site Header */
+        header {{
+            background: #ffffff;
+            border-bottom: 3px solid var(--primary);
+            padding: 22px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        }}
+        .header-inner {{
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .logo {{
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: var(--dark);
+            text-transform: uppercase;
+            text-decoration: none;
+        }}
+        .logo span {{ color: var(--primary); }}
+        .tagline {{ font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }}
+
+        /* Main Grid & Layout */
+        .container {{
+            max-width: 1140px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }}
+
+        /* Hero Feature Section */
+        .hero-story {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }}
+        .badge {{
+            background: var(--primary);
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 12px;
+        }}
+        .hero-story h2 {{
+            font-size: 1.9rem;
+            color: var(--dark);
+            margin-bottom: 15px;
+            line-height: 1.3;
+            letter-spacing: -0.5px;
+        }}
+        .hero-story p {{
+            font-size: 1.05rem;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }}
+        .key-takeaway {{
+            background: #f1f5f9;
+            border-left: 4px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.95rem;
+            color: #334155;
+        }}
+
+        /* Card Grid Layout */
+        .grid-container {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 35px;
+        }}
+        .card {{
+            background: var(--card-bg);
+            padding: 28px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+        .card:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08);
+        }}
+        .card-tag {{
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }}
+        .card h3 {{
+            font-size: 1.25rem;
+            color: var(--dark);
+            margin-bottom: 12px;
+            line-height: 1.35;
+        }}
+        .card p {{
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }}
+
+        /* Ad Banner Placeholder Slots */
+        .ad-banner {{
+            background: #cbd5e1;
+            border: 1px dashed #64748b;
+            border-radius: 8px;
+            text-align: center;
+            padding: 18px;
+            margin: 25px 0;
+            color: #334155;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }}
+
+        /* Verified Feeds Footer Grid */
+        .sources-section {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid var(--border);
+        }}
+        .sources-section h3 {{
+            font-size: 1.2rem;
+            color: var(--dark);
+            margin-bottom: 6px;
+        }}
+        .source-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }}
+        .source-chip {{
+            background: var(--gray-bg);
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+        }}
+        .source-badge {{
+            background: var(--dark);
+            color: #ffffff;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }}
+        .source-chip a {{
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            display: block;
+            line-height: 1.3;
+        }}
+        .source-chip a:hover {{ color: var(--primary); }}
+
+        /* Footer */
+        footer {{
+            background: var(--dark);
+            color: var(--text-muted);
+            padding: 35px 20px;
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.85rem;
+        }}
+        footer a {{ color: #94a3b8; text-decoration: none; margin: 0 8px; }}
+        footer a:hover {{ color: #ffffff; }}
+
+        @media (max-width: 768px) {{
+            .hero-story {{ padding: 25px; }}
+            .hero-story h2 {{ font-size: 1.5rem; }}
+            .logo {{ font-size: 1.8rem; }}
+        }}
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-inner">
+            <div class="live-indicator">
+                <span class="pulse"></span> LIVE MONITORING
+            </div>
+            <div>Updated: {current_date}</div>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-inner">
+            <div>
+                <a href="#" class="logo">Eye Witness <span>News</span></a>
+                <div class="tagline">Automated Global Insights & Regional Intel Desk</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Top Ad Placement Slot -->
+        <div class="ad-banner">
+            <span>ADVERTISEMENT PLACEHOLDER (ADSENSE HEADER BANNER)</span>
+        </div>
+
+        <!-- AI Briefing Content -->
+        <main>
+            {ai_content}
+        </main>
+
+        <!-- Mid-Page Ad Placement Slot -->
+        <div class="ad-banner">
+            <span>ADVERTISEMENT PLACEHOLDER (ADSENSE IN-FEED BANNER)</span>
+        </div>
+
+        <!-- Verified Live Sources Section -->
+        <section class="sources-section">
+            <h3>Verified Wire Feeds</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Real-time sources captured during this briefing cycle:</p>
+            <div class="source-grid">
+                {sources_list_html}
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>&copy; {datetime.datetime.now().year} Eye Witness News. All rights reserved.</p>
+        <p style="margin-top: 8px;">
+            <a href="#">Privacy Policy</a> | 
+            <a href="#">Terms of Service</a> | 
+            <a href="#">Editorial Disclosures</a>
+        </p>
+    </footer>
+
+</body>
+</html>
+"""
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_template)
+
+if __name__ == "__main__":
+    print("Fetching live RSS feeds...")
+    news_items = fetch_latest_news()
+    print(f"Successfully retrieved {len(news_items)} wire stories.")
+    print("Generating Eye Witness News AI briefing...")
+    ai_summary = generate_ai_roundup(news_items)
+    print("Compiling landing page index.html...")
+    build_index_html(ai_summary, news_items)
+    print("Eye Witness News build completed successfully!")

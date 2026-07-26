@@ -2,10 +2,9 @@ name: Deploy Eye Witness News
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Runs automatically every 30 minutes
-  workflow_dispatch:        # Allows manual updates via GitHub Actions UI
+    - cron: '*/30 * * * *'  # Triggered automatically every 30 minutes
+  workflow_dispatch:        # Manual trigger button
 
-# Required permissions for deploying static files to GitHub Pages
 permissions:
   contents: write
 
@@ -13,24 +12,24 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Python Packages
+      - name: Install Python Dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Generate Eye Witness News Site
+      - name: Generate Eye Witness News Landing Page
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python build_site.py
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy Static Site to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -90,7 +90,7 @@ def render_fallback_html(articles):
             <h3>{a['title']}</h3>
             <p>{a['summary'][:150]}...</p>
             <div class="pallet-footer">
-                <span class="read-more-link">Read The Story &rarr;</span>
+                <span class="read-more-link">Read the story &rarr;</span>
             </div>
 
             <template id="modal-grid-{i}">
@@ -99,6 +99,7 @@ def render_fallback_html(articles):
                     <h2>{a['title']}</h2>
                     <img src="{a['image']}" alt="Story Image" class="modal-img">
                     <p class="modal-body">{a['summary']}</p>
+                    <p class="modal-body">Further details regarding this ongoing situation are being tracked live by our monitoring desk.</p>
                     <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {a['source']}.</div>
                     <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                 </div>
@@ -115,7 +116,7 @@ def render_fallback_html(articles):
         <h2>{hero['title']}</h2>
         <p>{hero['summary']}</p>
         <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
-        <span class="read-more-btn">Read The Story &rarr;</span>
+        <span class="read-more-btn">Read the story &rarr;</span>
 
         <template id="modal-hero">
             <div class="modal-content-wrapper">
@@ -123,6 +124,7 @@ def render_fallback_html(articles):
                 <h2>{hero['title']}</h2>
                 <img src="{hero['image']}" alt="Lead Story" class="modal-img">
                 <p class="modal-body">{hero['summary']}</p>
+                <p class="modal-body">This developing story is monitored closely by international observers and regional correspondents.</p>
                 <div class="key-takeaway"><strong>Key Takeaway:</strong> Verified story from {hero['source']}.</div>
                 <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
             </div>
@@ -150,7 +152,7 @@ def generate_ai_roundup(articles):
 
     Task:
     Write a sleek, interactive news briefing using standard HTML tags only.
-    Rewrite the news into concise, engaging executive summaries.
+    Rewrite the news into well-crafted, comprehensive reports. Inside the modal templates, expand each story into a detailed report containing AT LEAST TWO OR THREE distinct paragraphs wrapped in separate <p class="modal-body">...</p> tags.
 
     Structure requirement:
     1. A single lead story wrapper:
@@ -162,14 +164,16 @@ def generate_ai_roundup(articles):
            <h2>[REWRITTEN_HEADLINE]</h2>
            <p>[REWRITTEN_SUMMARY_PREVIEW]</p>
            <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
-           <span class="read-more-btn">Read The Story &rarr;</span>
+           <span class="read-more-btn">Read the story &rarr;</span>
 
            <template id="modal-hero">
                <div class="modal-content-wrapper">
                    <span class="badge">TOP DEVELOPMENT</span>
                    <h2>[REWRITTEN_HEADLINE]</h2>
                    <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="modal-img">
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_1]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_2]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_3]</p>
                    <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
                    <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                </div>
@@ -185,7 +189,7 @@ def generate_ai_roundup(articles):
            <h3>[REWRITTEN_TITLE]</h3>
            <p>[REWRITTEN_SHORT_SUMMARY]</p>
            <div class="pallet-footer">
-               <span class="read-more-link">Read The Story &rarr;</span>
+               <span class="read-more-link">Read the story &rarr;</span>
            </div>
 
            <template id="modal-1">
@@ -193,7 +197,8 @@ def generate_ai_roundup(articles):
                    <span class="badge">[CATEGORY_OR_SOURCE]</span>
                    <h2>[REWRITTEN_TITLE]</h2>
                    <img src="[ARTICLE_IMAGE]" alt="Story Image" class="modal-img">
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_1]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_2]</p>
                    <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                </div>
            </template>
@@ -526,7 +531,7 @@ def build_index_html(ai_content, raw_articles):
             font-size: 1.05rem;
             line-height: 1.7;
             color: var(--text-main);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }}
 
         .sources-section {{

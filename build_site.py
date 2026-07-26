@@ -90,7 +90,7 @@ def render_fallback_html(articles):
             <h3>{a['title']}</h3>
             <p>{a['summary'][:150]}...</p>
             <div class="pallet-footer">
-                <span class="read-more-link">Read Story &rarr;</span>
+                <span class="read-more-link">Read The Story &rarr;</span>
             </div>
 
             <template id="modal-grid-{i}">
@@ -115,7 +115,7 @@ def render_fallback_html(articles):
         <h2>{hero['title']}</h2>
         <p>{hero['summary']}</p>
         <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {hero['source']}.</div>
-        <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+        <span class="read-more-btn">Read The Story &rarr;</span>
 
         <template id="modal-hero">
             <div class="modal-content-wrapper">
@@ -162,7 +162,7 @@ def generate_ai_roundup(articles):
            <h2>[REWRITTEN_HEADLINE]</h2>
            <p>[REWRITTEN_SUMMARY_PREVIEW]</p>
            <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
-           <span class="read-more-btn">Read Rewritten Story &rarr;</span>
+           <span class="read-more-btn">Read The Story &rarr;</span>
 
            <template id="modal-hero">
                <div class="modal-content-wrapper">

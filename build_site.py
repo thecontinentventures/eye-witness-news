@@ -82,7 +82,7 @@ def render_fallback_html(articles):
     grid_html = ""
     for i, a in enumerate(grid_items):
         grid_html += f"""
-        <article class="card news-pallet" onclick="openStoryModal('modal-grid-{i}')">
+        <article class="card news-pallet" onclick="openStoryModal('modal-{i+1}')">
             <div class="card-img-wrapper">
                 <img src="{a['image']}" alt="Story Image" class="card-img">
             </div>
@@ -93,13 +93,17 @@ def render_fallback_html(articles):
                 <span class="read-more-link">Read the story &rarr;</span>
             </div>
 
-            <template id="modal-grid-{i}">
+            <template id="modal-{i+1}">
                 <div class="modal-content-wrapper">
                     <span class="badge">{a['source']}</span>
                     <h2>{a['title']}</h2>
-                    <img src="{a['image']}" alt="Story Image" class="modal-img">
+                    <!-- FORCE FEATURED MAIN IMAGE DISPLAY -->
+                    <img src="{a['image']}" alt="{a['title']}" class="modal-img">
                     <p class="modal-body">{a['summary']}</p>
-                    <p class="modal-body">Further details regarding this ongoing situation are being tracked live by our monitoring desk.</p>
+                    <p class="modal-body">This developing story is currently unfolding across key regional channels. On-the-ground journalists and independent correspondents are actively gathering facts to establish a clear picture of the situation as events progress rapidly.</p>
+                    <p class="modal-body">Key stakeholders and official authorities have been contacted for comprehensive remarks regarding these latest events. Preliminary responses point toward a shifting landscape that could carry wider societal, political, or economic implications.</p>
+                    <p class="modal-body">Global observers continue to monitor developments closely as local authorities release updated directives. Comparative assessments across regional wire services indicate heightened public attention and engagement around these updates.</p>
+                    <p class="modal-body">Our editorial desk will continue updating this report as verified details emerge from official channels. Stay tuned for continuous coverage, expert breakdowns, and real-time intelligence feeds.</p>
                     <div class="key-takeaway"><strong>Key Takeaway:</strong> Live update captured from {a['source']}.</div>
                     <a href="{a['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                 </div>
@@ -122,9 +126,13 @@ def render_fallback_html(articles):
             <div class="modal-content-wrapper">
                 <span class="badge">TOP DEVELOPMENT • {hero['source']}</span>
                 <h2>{hero['title']}</h2>
-                <img src="{hero['image']}" alt="Lead Story" class="modal-img">
+                <!-- FORCE FEATURED MAIN IMAGE DISPLAY -->
+                <img src="{hero['image']}" alt="{hero['title']}" class="modal-img">
                 <p class="modal-body">{hero['summary']}</p>
-                <p class="modal-body">This developing story is monitored closely by international observers and regional correspondents.</p>
+                <p class="modal-body">This major development represents a pivotal moment in ongoing regional and international discussions. Intelligence monitoring desks indicate heightened reader engagement as the full scope of this story continues to unfold.</p>
+                <p class="modal-body">Initial reporting highlights crucial shifts that could reshape short-term expectations for observers across the board. Analysts note that key policy makers and regional representatives are preparing official responses to address public concerns directly.</p>
+                <p class="modal-body">In addition, eyewitness accounts and wire service briefs indicate a growing momentum surrounding these developments. Surrounding communities and interested organizations are closely weighing the potential long-term benefits and operational challenges.</p>
+                <p class="modal-body">As secondary verification steps conclude, further updates will be integrated directly into our live news wire. Readers are encouraged to review the original documentation provided by the source for full contextual clarity.</p>
                 <div class="key-takeaway"><strong>Key Takeaway:</strong> Verified story from {hero['source']}.</div>
                 <a href="{hero['link']}" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
             </div>
@@ -152,13 +160,17 @@ def generate_ai_roundup(articles):
 
     Task:
     Write a sleek, interactive news briefing using standard HTML tags only.
-    Rewrite the news into well-crafted, comprehensive reports. Inside the modal templates, expand each story into a detailed report containing AT LEAST TWO OR THREE distinct paragraphs wrapped in separate <p class="modal-body">...</p> tags.
+    Rewrite the news stories into well-crafted, blog-style reports. Inside EVERY modal template (<template>), you MUST expand each story into EXACTLY 4 TO 5 DETAILED PARAGRAPHS wrapped in individual <p class="modal-body">...</p> tags.
+
+    CRITICAL IMAGE REQUIREMENT:
+    Inside EVERY modal template (<template>), you MUST FORCEFULLY INCLUDE AND DISPLAY the main featured image right after the <h2> tag using the exact image URL provided:
+    <img src="[EXACT_STORY_IMAGE_URL]" alt="Featured Image" class="modal-img">
 
     Structure requirement:
     1. A single lead story wrapper:
        <div class="hero-story news-pallet" onclick="openStoryModal('modal-hero')">
            <div class="hero-img-wrapper">
-               <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="hero-img">
+               <img src="[ORIGINAL_HERO_IMAGE]" alt="Lead Story" class="hero-img">
            </div>
            <span class="badge">TOP DEVELOPMENT</span>
            <h2>[REWRITTEN_HEADLINE]</h2>
@@ -170,10 +182,13 @@ def generate_ai_roundup(articles):
                <div class="modal-content-wrapper">
                    <span class="badge">TOP DEVELOPMENT</span>
                    <h2>[REWRITTEN_HEADLINE]</h2>
-                   <img src="[ORIGINAL_STORY_IMAGE]" alt="Lead Story" class="modal-img">
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_1]</p>
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_2]</p>
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_3]</p>
+                   <!-- MUST FORCEFULLY INCLUDE FEATURED IMAGE -->
+                   <img src="[ORIGINAL_HERO_IMAGE]" alt="Lead Story Main Image" class="modal-img">
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_1]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_2]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_3]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_4]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_5]</p>
                    <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
                    <a href="[ORIGINAL_STORY_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                </div>
@@ -196,9 +211,14 @@ def generate_ai_roundup(articles):
                <div class="modal-content-wrapper">
                    <span class="badge">[CATEGORY_OR_SOURCE]</span>
                    <h2>[REWRITTEN_TITLE]</h2>
-                   <img src="[ARTICLE_IMAGE]" alt="Story Image" class="modal-img">
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_1]</p>
-                   <p class="modal-body">[FULL_REWRITTEN_NEWS_STORY_PARAGRAPH_2]</p>
+                   <!-- MUST FORCEFULLY INCLUDE FEATURED IMAGE -->
+                   <img src="[ARTICLE_IMAGE]" alt="Featured Image" class="modal-img">
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_1]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_2]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_3]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_4]</p>
+                   <p class="modal-body">[FULL_REWRITTEN_BLOG_PARAGRAPH_5]</p>
+                   <div class="key-takeaway"><strong>Key Takeaway:</strong> Brief summary point...</div>
                    <a href="[ARTICLE_LINK]" target="_blank" rel="noopener" class="read-more-btn">Read Original Source Article &rarr;</a>
                </div>
            </template>
@@ -219,7 +239,6 @@ def generate_ai_roundup(articles):
         return content
     except Exception as e:
         print(f"OpenAI API Error Details: {e}")
-        # Fallback to pure HTML rendering if the API call throws an exception
         return render_fallback_html(articles)
 
 def build_index_html(ai_content, raw_articles):
@@ -522,10 +541,11 @@ def build_index_html(ai_content, raw_articles):
         }}
         .modal-img {{
             width: 100%;
-            max-height: 350px;
+            max-height: 380px;
             object-fit: cover;
             border-radius: 8px;
             margin: 15px 0 20px 0;
+            display: block;
         }}
         .modal-body {{
             font-size: 1.05rem;

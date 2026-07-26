@@ -185,7 +185,7 @@ def generate_ai_roundup(articles):
            <h3>[REWRITTEN_TITLE]</h3>
            <p>[REWRITTEN_SHORT_SUMMARY]</p>
            <div class="pallet-footer">
-               <span class="read-more-link">Read Rewritten Story &rarr;</span>
+               <span class="read-more-link">Read The Story &rarr;</span>
            </div>
 
            <template id="modal-1">
